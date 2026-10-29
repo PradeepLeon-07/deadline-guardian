@@ -31,7 +31,7 @@ export default function DeadlineCard({ deadline, onComplete, onDelete, onEdit })
         <span>{due.toLocaleString()}</span>
         <span className="countdown">{countdownText}</span>
       </div>
-      <div className="card-email">📧 {deadline.StudentEmail.split(',').map(e => e.trim()).join(' • ')}</div>
+      <div className="card-email">📧 {(deadline.StudentEmail || '').split(',').map(e => e.trim()).join(' • ')}</div>
       <div className="card-actions">
         {deadline.Status !== 'Completed' && (
           <button className="btn btn-success" onClick={() => onComplete(deadline.rowKey)}>Complete</button>

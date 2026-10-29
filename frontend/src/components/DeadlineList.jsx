@@ -38,7 +38,7 @@ export default function DeadlineList() {
   };
 
   const filtered = deadlines.filter((d) => {
-    const matchSearch = !search || d.Title.toLowerCase().includes(search.toLowerCase()) || d.Subject.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || (d.Title || '').toLowerCase().includes(search.toLowerCase()) || (d.Subject || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || d.Status === statusFilter;
     return matchSearch && matchStatus;
   });
