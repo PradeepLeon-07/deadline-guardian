@@ -1,4 +1,12 @@
-export default function DeadlineCard({ deadline, onComplete, onDelete, onEdit }) {
+export default function DeadlineCard({
+  deadline,
+  onComplete,
+  onDelete,
+  onEdit,
+  onRemind,
+  isReminding,
+  isReminderPending,
+}) {
   const due = new Date(deadline.DueDateTimeUtc);
   const now = new Date();
   const diffMs = due - now;
@@ -33,6 +41,13 @@ export default function DeadlineCard({ deadline, onComplete, onDelete, onEdit })
       </div>
       <div className="card-email">📧 {(deadline.StudentEmail || '').split(',').map(e => e.trim()).join(' • ')}</div>
       <div className="card-actions">
+        <button
+          className="btn btn-primary"
+          onClick={() => onRemind(deadline)}
+          disabled={isReminderPending}
+        >
+          {isReminding ? 'Sending...' : 'Send Reminder'}
+        </button>
         {deadline.Status !== 'Completed' && (
           <button className="btn btn-success" onClick={() => onComplete(deadline.rowKey)}>Complete</button>
         )}

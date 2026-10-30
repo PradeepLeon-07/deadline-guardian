@@ -22,4 +22,5 @@ export const api = {
   deleteDeadline: (id) => request(`/deadlines/${id}`, { method: 'DELETE' }),
   completeDeadline: (id) => request(`/deadlines/${id}/complete`, { method: 'PATCH' }),
   getDashboard: () => request('/dashboard'),
+  sendDeadlineReminder: (id) => request(`/deadlines/${encodeURIComponent(id)}/remind`, { method: 'POST' }),
 };

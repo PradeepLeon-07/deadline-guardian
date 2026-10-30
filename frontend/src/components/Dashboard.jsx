@@ -1,32 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 
-async function triggerReminder() {
-  const res = await fetch('/api/test/trigger-reminder', { method: 'POST' });
-  return res.json();
-}
-
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
-  const [reminderMsg, setReminderMsg] = useState('');
 
   useEffect(() => {
     api.getDashboard()
       .then(setStats)
       .catch((e) => setError(e.message));
   }, []);
-
-  const handleTrigger = async () => {
-    setReminderMsg('Sending...');
-    try {
-      const result = await triggerReminder();
-      setReminderMsg(result.message);
-    } catch {
-      setReminderMsg('Failed to trigger reminders.');
-    }
-    setTimeout(() => setReminderMsg(''), 5000);
-  };
 
   if (error) return <p className="error">{error}</p>;
   if (!stats) return <p className="loading">Loading dashboard...</p>;
@@ -49,10 +32,6 @@ export default function Dashboard() {
             <div className="stat-label">{c.label}</div>
           </div>
         ))}
-      </div>
-      <div style={{ marginTop: '32px' }}>
-        <button className="btn btn-primary" onClick={handleTrigger}>🔔 Test Reminders Now</button>
-        {reminderMsg && <p style={{ marginTop: '12px', color: '#6366f1', fontWeight: 600 }}>{reminderMsg}</p>}
       </div>
     </div>
   );

@@ -6,4 +6,4 @@ import "./src/functions/deleteDeadline.js";
 import "./src/functions/completeDeadline.js";
 import "./src/functions/getDashboard.js";
 import "./src/functions/reminderTimer.js";
-import "./src/functions/triggerReminder.js";
+import "./src/functions/sendDeadlineReminder.js";

@@ -11,6 +11,7 @@ export default function DeadlineList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [editTarget, setEditTarget] = useState(null);
   const [toast, setToast] = useState('');
+  const [remindingId, setRemindingId] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -35,6 +36,18 @@ export default function DeadlineList() {
     await api.deleteDeadline(id);
     showToast('Deleted.');
     load();
+  };
+
+  const handleRemind = async (deadline) => {
+    setRemindingId(deadline.rowKey);
+    try {
+      const result = await api.sendDeadlineReminder(deadline.rowKey);
+      showToast(result.message);
+    } catch (e) {
+      showToast(`Reminder failed: ${e.message}`);
+    } finally {
+      setRemindingId(null);
+    }
   };
 
   const filtered = deadlines.filter((d) => {
@@ -70,6 +83,9 @@ export default function DeadlineList() {
             onComplete={handleComplete}
             onDelete={handleDelete}
             onEdit={setEditTarget}
+            onRemind={handleRemind}
+            isReminding={remindingId === d.rowKey}
+            isReminderPending={remindingId !== null}
           />
         ))}
       </div>

@@ -13,19 +13,16 @@ Deadline Guardian is a cloud-native serverless application built on Microsoft Az
 ## Architecture
 
 ```
-React (Vite) → Azure Static Web Apps → Azure Functions (HTTP) → Azure Table Storage
-                                                                        ↑
-                                    Azure Functions (Timer) ────────────┘
-                                            ↓
-                                      Resend Email API
+React (Vite) → Azure Static Web Apps managed API (HTTP) → Azure Table Storage / Gmail SMTP
 ```
 
 - React frontend makes HTTP calls to /api/* endpoints
-- Azure Static Web Apps routes /api/* to Azure Functions automatically
+- Azure Static Web Apps serves the frontend and managed HTTP API under /api/*
 - Azure Functions HTTP Triggers handle all CRUD operations
-- Azure Functions Timer Trigger runs every 15 minutes to check and send reminders
+- The per-deadline HTTP endpoint sends reminders on demand
+- Each deadline card can send a reminder only for that selected deadline
 - Azure Table Storage stores all deadline records
-- Resend sends transactional reminder emails
+- Gmail SMTP sends transactional reminder emails using a Gmail app password
 
 ---
 
@@ -75,8 +72,8 @@ Edit `api/local.settings.json`:
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "STORAGE_CONNECTION_STRING": "UseDevelopmentStorage=true",
-    "RESEND_API_KEY": "re_your_key_here",
-    "REMINDER_FROM_EMAIL": "onboarding@resend.dev"
+    "GMAIL_USER": "your_gmail_address",
+    "GMAIL_APP_PASSWORD": "your_gmail_app_password"
   }
 }
 ```
@@ -113,7 +110,7 @@ Open: http://localhost:5173
 | DELETE | /api/deadlines/{id} | Delete a deadline |
 | PATCH | /api/deadlines/{id}/complete | Mark as completed |
 | GET | /api/dashboard | Get summary stats |
-| POST | /api/test/trigger-reminder | Manually trigger reminders |
+| POST | /api/deadlines/{id}/remind | Send a reminder for one deadline |
 
 ---
 
@@ -141,41 +138,49 @@ Table name: `Deadlines`
 ## Azure Deployment
 
 ### Step 1 — Create Azure resources
+
+Create an Azure Storage account and an Azure Static Web App. The current workflow deploys both the frontend and the HTTP API as Static Web Apps managed functions.
+
 ```bash
 az login
 az group create --name deadline-guardian-rg --location eastus
 az storage account create --name deadlineguardiansa --resource-group deadline-guardian-rg --sku Standard_LRS
-az staticwebapp create --name deadline-guardian --resource-group deadline-guardian-rg
+az staticwebapp create --name deadline-guardian --resource-group deadline-guardian-rg --location eastus
 ```
 
-### Step 2 — Get deployment token
+### Step 2 — Configure Static Web Apps settings
+
+```bash
+az staticwebapp appsettings set --name deadline-guardian --resource-group deadline-guardian-rg --setting-names STORAGE_CONNECTION_STRING="your_storage_connection_string" GMAIL_USER="your_gmail_address" GMAIL_APP_PASSWORD="your_gmail_app_password"
+```
+
+The API uses `STORAGE_CONNECTION_STRING`, falling back to `AzureWebJobsStorage` if it is not set. Gmail SMTP uses a Gmail app password; configure both settings on the Static Web App so the managed API can send messages.
+
+### Step 3 — Add the GitHub secret
+
+Add `AZURE_STATIC_WEB_APPS_API_TOKEN` using the deployment token from the Static Web App.
+
+### Step 4 — Deploy
+
+Push to `main`. The Static Web Apps workflow deploys both the frontend and `/api`.
+
+Static Web Apps managed APIs support HTTP triggers only. Per-deadline reminder buttons use an HTTP endpoint; the scheduled timer requires a separately linked Azure Functions app and a Standard-plan Static Web App.
+
+### Local development setup
+
+The earlier steps configure production resources. To retrieve a Static Web Apps deployment token manually:
+
 ```bash
 az staticwebapp secrets list --name deadline-guardian --resource-group deadline-guardian-rg
 ```
-
-### Step 3 — Add GitHub secret
-Go to GitHub repo → Settings → Secrets → New secret:
-- Name: `AZURE_STATIC_WEB_APPS_API_TOKEN`
-- Value: paste the token from Step 2
-
-### Step 4 — Set production environment variables
-```bash
-az staticwebapp appsettings set --name deadline-guardian --resource-group deadline-guardian-rg --setting-names \
-  STORAGE_CONNECTION_STRING="your_storage_connection_string" \
-  RESEND_API_KEY="your_resend_api_key" \
-  REMINDER_FROM_EMAIL="onboarding@resend.dev"
-```
-
-### Step 5 — Deploy
-Push to main branch — GitHub Actions deploys automatically.
 
 ---
 
 ## Testing Reminders Without Waiting
 
-Add a deadline due within 1 hour, then call:
+Use **Send Reminder** on a deadline card, or call its reminder endpoint using its ID:
 ```bash
-curl -X POST http://localhost:7071/api/test/trigger-reminder
+curl -X POST http://localhost:7071/api/deadlines/{id}/remind
 ```
 
 ---
@@ -205,7 +210,7 @@ curl -X POST http://localhost:7071/api/test/trigger-reminder
 
 - No user authentication — this is an academic prototype
 - Email address is not verified — anyone can enter any email
-- Resend free tier — limited to 100 emails/day and requires domain for production
+- Gmail SMTP sending limits apply
 - Azure Table Storage — no complex queries, suitable for simple use cases
 
 ---
@@ -217,5 +222,5 @@ curl -X POST http://localhost:7071/api/test/trigger-reminder
 | ECONNREFUSED 10002 | Azurite not running | Run `azurite --location d:\azurite-data --silent` |
 | address already in use 7071 | Old func process running | Run `taskkill /F /IM func.exe` |
 | Request failed | Backend not started | Run `npm start` in api folder |
-| Email not received | Wrong API key | Check RESEND_API_KEY in local.settings.json |
+| Email not received | Gmail SMTP credentials missing or invalid | Set GMAIL_USER and GMAIL_APP_PASSWORD in Azure Function App settings; use a Gmail app password |
 | func not recognized | Core Tools not in PATH | Add D:\Azure.Functions.Cli.min.win-x64.4.16.0 to system PATH |
