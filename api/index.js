@@ -1,0 +1,9 @@
+import "./src/functions/getDeadlines.js";
+import "./src/functions/createDeadline.js";
+import "./src/functions/getDeadlineById.js";
+import "./src/functions/updateDeadline.js";
+import "./src/functions/deleteDeadline.js";
+import "./src/functions/completeDeadline.js";
+import "./src/functions/getDashboard.js";
+import "./src/functions/reminderTimer.js";
+import "./src/functions/triggerReminder.js";
